@@ -5,18 +5,21 @@ from database import init_db
 from routes import register_blueprints
 
 def create_app():
-    """Application Factory Pattern"""
     app = Flask(__name__)
-    app.config.from_object(Config)
+    app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Initialize extensions and database
+    CORS(app)
     init_db(app)
 
-    # Register blueprints
-    register_blueprints(app)
-    
+    @app.route("/health")
+    def health():
+        return {"status": "ok"}
+
     return app
 
+# 👇 THIS LINE IS THE KEY
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
