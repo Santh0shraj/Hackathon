@@ -1,0 +1,2 @@
+# Purpose: Ensures frontend/src directory is tracked by git.
+# Place React app entry (main.jsx), App component, pages, components, and assets here.

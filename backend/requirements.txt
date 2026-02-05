@@ -1,0 +1,3 @@
+# Purpose: Python dependencies for the Flask backend.
+# Install with: pip install -r requirements.txt
+# Add packages such as: flask, flask-sqlalchemy, mysqlclient or pymysql, python-dotenv, etc.
