@@ -1,30 +1,30 @@
-# Database setup: connection, session, and init/teardown for the app context.
 
-import os
 from contextlib import contextmanager
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from flask_sqlalchemy import SQLAlchemy
 
-from models import Base
+# Initialize Flask-SQLAlchemy
+db = SQLAlchemy()
 
-# Use SQLite by default so the app runs without MySQL. Set DATABASE_URI for MySQL.
-DATABASE_URI = os.environ.get(
-    "DATABASE_URI",
-    "sqlite:///hackathon.db",
-)
-engine = create_engine(DATABASE_URI, echo=False)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
+def init_db(app):
+    """Initialize the database with the Flask app."""
+    db.init_app(app)
+    
+    # Create tables within app context
+    with app.app_context():
+        # Import models here to ensure they are registered with SQLAlchemy
+        import models
+        db.create_all()
 
 @contextmanager
 def get_session():
-    """Provide a transactional scope: commit on success, rollback on exception."""
-    session = SessionLocal()
+    """
+    Compatibility shim for existing code that expects a session context manager.
+    Wraps db.session with commit/rollback logic.
+    """
     try:
-        yield session
-        session.commit()
+        yield db.session
+        db.session.commit()
     except Exception:
-        session.rollback()
+        db.session.rollback()
         raise
-    finally:
-        session.close()
+    # Note: Flask-SQLAlchemy handles session removal automatically at end of request

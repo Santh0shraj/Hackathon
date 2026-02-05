@@ -1,6 +1,7 @@
-# Python dependencies for the Flask backend. Install: pip install -r requirements.txt
-flask>=3.0
-python-dotenv>=1.0
-requests>=2.31
-sqlalchemy>=2.0
-PyMySQL>=1.1
+flask
+flask-cors
+flask-sqlalchemy
+psycopg2-binary
+python-dotenv
+gunicorn
+requests

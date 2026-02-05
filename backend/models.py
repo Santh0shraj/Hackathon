@@ -3,9 +3,12 @@
 import enum
 from datetime import datetime
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import relationship
 
-Base = declarative_base()
+from database import db
+
+# Base = declarative_base() # Removed in favor of db.Model
+
 
 
 class RunStatus(str, enum.Enum):
@@ -20,7 +23,7 @@ class ContextStrategy(str, enum.Enum):
     summary = "summary"
 
 
-class Workflow(Base):
+class Workflow(db.Model):
     __tablename__ = "workflows"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -35,7 +38,7 @@ class Workflow(Base):
         return f"<Workflow(id={self.id}, name={repr(self.name)})>"
 
 
-class Step(Base):
+class Step(db.Model):
     __tablename__ = "steps"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -59,7 +62,7 @@ class Step(Base):
         return f"<Step(id={self.id}, workflow_id={self.workflow_id}, step_order={self.step_order})>"
 
 
-class WorkflowRun(Base):
+class WorkflowRun(db.Model):
     __tablename__ = "workflow_runs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -75,7 +78,7 @@ class WorkflowRun(Base):
         return f"<WorkflowRun(id={self.id}, workflow_id={self.workflow_id}, status={self.status})>"
 
 
-class StepRun(Base):
+class StepRun(db.Model):
     __tablename__ = "step_runs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

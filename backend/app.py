@@ -1,23 +1,22 @@
-# Flask app entry point: creates app, loads config, registers blueprints, runs server.
-
-from dotenv import load_dotenv
-load_dotenv()
 
 from flask import Flask
-
-from database import engine
-from models import Base
+from config import Config
+from database import init_db
 from routes import register_blueprints
 
-app = Flask(__name__)
-register_blueprints(app)
+def create_app():
+    """Application Factory Pattern"""
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
+    # Initialize extensions and database
+    init_db(app)
 
-def init_db():
-    """Create tables if they don't exist."""
-    Base.metadata.create_all(bind=engine)
-
+    # Register blueprints
+    register_blueprints(app)
+    
+    return app
 
 if __name__ == "__main__":
-    init_db()
+    app = create_app()
     app.run(debug=True, port=5000)
