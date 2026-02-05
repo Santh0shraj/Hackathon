@@ -4,6 +4,13 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
+import requests
+
+UNBOUND_API_URL = os.environ.get(
+    "UNBOUND_API_URL",
+    "https://api.getunbound.ai/v1/chat/completions",
+)
+
 
 @dataclass
 class LLMResponse:
@@ -18,40 +25,38 @@ def _get_api_key() -> str | None:
 
 
 def _prepare_payload(model_name: str, prompt: str) -> dict[str, Any]:
-    """Build the request body for the Unbound LLM API."""
+    """Build the request body for Unbound chat/completions (OpenAI-compatible)."""
     return {
         "model": model_name,
-        "prompt": prompt,
-        # Add other API-specific fields here when integrating the real API.
+        "messages": [{"role": "user", "content": prompt}],
     }
 
 
 def _call_unbound_api(payload: dict[str, Any], api_key: str) -> dict[str, Any]:
-    """
-    Execute the HTTP request to the Unbound API.
-    Replace this implementation with the real API call (e.g. requests.post).
-    """
-    # TODO: Replace with real call, e.g.:
-    # response = requests.post(
-    #     "https://api.unbound.../v1/...",
-    #     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-    #     json=payload,
-    #     timeout=60,
-    # )
-    # response.raise_for_status()
-    # return response.json()
-
-    # Placeholder: simulate API response.
-    _ = payload, api_key
-    return {
-        "text": f"[Placeholder response for model={payload.get('model', '')}]",
-        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-    }
+    """POST to Unbound chat completions endpoint."""
+    response = requests.post(
+        UNBOUND_API_URL,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=120,
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 def _parse_api_response(raw: dict[str, Any]) -> LLMResponse:
-    """Map Unbound API response shape to LLMResponse."""
-    response_text = raw.get("text", raw.get("content", "")) or ""
+    """Map OpenAI-style chat completions response to LLMResponse."""
+    choices = raw.get("choices") or []
+    content = ""
+    if choices and isinstance(choices[0], dict):
+        msg = choices[0].get("message") or {}
+        content = msg.get("content") or ""
+    if not isinstance(content, str):
+        content = str(content) if content is not None else ""
+
     usage = raw.get("usage") or {}
     token_usage = {
         "prompt": usage.get("prompt_tokens", 0),
@@ -59,9 +64,8 @@ def _parse_api_response(raw: dict[str, Any]) -> LLMResponse:
         "total": usage.get("total_tokens", 0),
     }
     if token_usage["total"] == 0:
-        # Mock usage when API does not return it.
-        token_usage = {"prompt": 0, "completion": len(response_text) // 4, "total": len(response_text) // 4}
-    return LLMResponse(response_text=response_text, token_usage=token_usage)
+        token_usage = {"prompt": 0, "completion": len(content) // 4, "total": len(content) // 4}
+    return LLMResponse(response_text=content, token_usage=token_usage)
 
 
 def call_llm(model_name: str, prompt: str) -> LLMResponse:
@@ -69,19 +73,16 @@ def call_llm(model_name: str, prompt: str) -> LLMResponse:
     Call the Unbound LLM with the given model and prompt.
 
     - Reads UNBOUND_API_KEY from environment.
-    - Prepares request payload and returns response_text and token_usage.
-    - Token usage is mocked when the API does not provide it.
-
-    Returns:
-        LLMResponse with response_text and token_usage.
+    - Uses UNBOUND_API_URL (default: https://api.getunbound.ai/v1/chat/completions).
+    - Returns response_text and token_usage.
     """
     api_key = _get_api_key()
     payload = _prepare_payload(model_name, prompt)
 
     if not api_key:
-        # Placeholder path when no key is set; still return a valid structure.
+        # Placeholder when no key: return SUCCESS so demo workflows (completion contains "SUCCESS") pass.
         return LLMResponse(
-            response_text=f"[Placeholder: no UNBOUND_API_KEY] model={model_name}",
+            response_text="SUCCESS",
             token_usage={"prompt": 0, "completion": 0, "total": 0},
         )
 

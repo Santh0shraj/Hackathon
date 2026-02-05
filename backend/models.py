@@ -3,7 +3,6 @@
 import enum
 from datetime import datetime
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -88,7 +87,7 @@ class StepRun(Base):
     step_id = Column(Integer, ForeignKey("steps.id", ondelete="CASCADE"), nullable=False)
     attempt_number = Column(Integer, default=1, nullable=False)
     status = Column(Enum(RunStatus), default=RunStatus.RUNNING, nullable=False)
-    llm_response = Column(LONGTEXT, nullable=True)
+    llm_response = Column(Text, nullable=True)
     failure_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

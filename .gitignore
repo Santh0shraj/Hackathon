@@ -1,0 +1,15 @@
+# Env and secrets
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# SQLite
+*.db
+
+# Frontend
+node_modules/

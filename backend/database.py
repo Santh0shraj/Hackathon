@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from models import Base
 
+# Use SQLite by default so the app runs without MySQL. Set DATABASE_URI for MySQL.
 DATABASE_URI = os.environ.get(
     "DATABASE_URI",
-    "mysql+pymysql://root:password@localhost:3306/hackathon",
+    "sqlite:///hackathon.db",
 )
 engine = create_engine(DATABASE_URI, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
