@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "React (Vite) frontend for the Hackathon full-stack app.",
+  "description": "React frontend for Hackathon app.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

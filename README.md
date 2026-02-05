@@ -1,18 +1,6 @@
 # Hackathon Full-Stack App
 
-## Purpose
-Project root: overview, setup instructions, and high-level description of the stack (Flask + React + MySQL).
-
-## Stack
-- **Backend:** Flask (Python)
-- **Frontend:** React (Vite)
-- **Database:** MySQL
-
 ## Structure
-- `backend/` — Flask API, config, models, routes, services, `requirements.txt`
-- `frontend/` — React (Vite) app; `src/` for components and entry point
-- `README.md` — This file
-
-## Next steps
-- Add implementation to backend and frontend as needed.
-- Configure MySQL and environment variables (see `backend/config.py`).
+- **backend/** — Flask API: app, config, models, database, routes (workflows, runs), services (Unbound client, workflow executor, completion checker).
+- **frontend/** — React app: src/pages, src/components, src/api, package.json.
+- **README.md** — This file; add setup and run instructions here.
