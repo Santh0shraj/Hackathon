@@ -91,18 +91,30 @@ def add_step(workflow_id: int):
 @workflows_bp.route("/<int:workflow_id>/run", methods=["POST"])
 def run_workflow(workflow_id: int):
     """POST /workflows/<id>/run → execute the workflow (synchronous)."""
-    with get_session() as session:
-        workflow = session.get(Workflow, workflow_id)
-        if not workflow:
-            return jsonify({"error": "workflow not found"}), 404
-        try:
-            run = execute_workflow(workflow_id, session=session)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 404
-        return jsonify({
-            "id": run.id,
-            "workflow_id": run.workflow_id,
-            "status": run.status.value,
-            "started_at": run.started_at.isoformat() if run.started_at else None,
-            "finished_at": run.finished_at.isoformat() if run.finished_at else None,
-        }), 201
+    try:
+        with get_session() as session:
+            workflow = session.get(Workflow, workflow_id)
+            if not workflow:
+                return jsonify({"error": "workflow not found"}), 404
+            try:
+                run = execute_workflow(workflow_id, session=session)
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 404
+            except Exception as e:
+                # Log the full error for debugging
+                import traceback
+                print(f"Error executing workflow {workflow_id}:")
+                print(traceback.format_exc())
+                return jsonify({"error": f"Workflow execution failed: {str(e)}"}), 500
+            return jsonify({
+                "id": run.id,
+                "workflow_id": run.workflow_id,
+                "status": run.status.value,
+                "started_at": run.started_at.isoformat() if run.started_at else None,
+                "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+            }), 201
+    except Exception as e:
+        import traceback
+        print(f"Unexpected error in run_workflow endpoint:")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Server error: {str(e)}"}), 500

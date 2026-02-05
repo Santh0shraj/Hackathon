@@ -5,12 +5,13 @@ from dataclasses import dataclass
 from typing import Any
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 UNBOUND_API_URL = os.environ.get(
     "UNBOUND_API_URL",
     "https://api.getunbound.ai/v1/chat/completions",
 )
-
 
 @dataclass
 class LLMResponse:
@@ -18,11 +19,9 @@ class LLMResponse:
     response_text: str
     token_usage: dict[str, int]  # e.g. {"prompt": N, "completion": M, "total": N+M}
 
-
 def _get_api_key() -> str | None:
     """Read Unbound API key from environment."""
     return os.environ.get("UNBOUND_API_KEY")
-
 
 def _prepare_payload(model_name: str, prompt: str) -> dict[str, Any]:
     """Build the request body for Unbound chat/completions (OpenAI-compatible)."""
@@ -31,20 +30,68 @@ def _prepare_payload(model_name: str, prompt: str) -> dict[str, Any]:
         "messages": [{"role": "user", "content": prompt}],
     }
 
+def _create_session():
+    """Create a requests session with retry logic."""
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["POST"]
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 def _call_unbound_api(payload: dict[str, Any], api_key: str) -> dict[str, Any]:
     """POST to Unbound chat completions endpoint."""
-    response = requests.post(
-        UNBOUND_API_URL,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        json=payload,
-        timeout=120,
-    )
-    response.raise_for_status()
-    return response.json()
+import subprocess
+import json
+import sys
+
+def _call_unbound_api(payload: dict[str, Any], api_key: str) -> dict[str, Any]:
+    """POST to Unbound chat completions endpoint via isolated subprocess."""
+    try:
+        # Path to the wrapper script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        wrapper_path = os.path.join(current_dir, "api_wrapper.py")
+        
+        # Prepare input data
+        input_data = {
+            "api_key": api_key,
+            "payload": payload
+            # "url": UNBOUND_API_URL <-- Let wrapper use its default or load from .env itself
+        }
+        
+        # Call the script using the same python interpreter
+        process = subprocess.Popen(
+            [sys.executable, wrapper_path],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        stdout, stderr = process.communicate(input=json.dumps(input_data))
+        
+        if process.returncode != 0:
+            raise Exception(f"Wrapper script failed: {stderr}")
+            
+        # Parse result
+        try:
+            result = json.loads(stdout)
+        except json.JSONDecodeError:
+            raise Exception(f"Invalid JSON from wrapper: {stdout}")
+            
+        if "error" in result and "usage" not in result: # Check for our custom error format vs valid API response
+            raise Exception(f"API Error from wrapper: {result['error']}")
+            
+        return result
+
+    except Exception as e:
+        print(f"Subprocess Error: {e}")
+        raise
 
 
 def _parse_api_response(raw: dict[str, Any]) -> LLMResponse:

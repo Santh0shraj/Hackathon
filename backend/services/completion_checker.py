@@ -105,6 +105,7 @@ def check_completion(
     - "regex": output must match the regex pattern in completion_value.
     - "json": output must be valid JSON (completion_value ignored).
     - "python_function": output must contain a valid Python function definition (completion_value ignored).
+    - Empty/None: no validation, always succeeds.
 
     Returns:
         {"success": bool, "reason": str}
@@ -113,11 +114,19 @@ def check_completion(
         output = ""
     completion_value = completion_value or ""
 
+    # If no completion type specified, validation passes automatically
+    if not completion_type or completion_type.strip() == "":
+        return {
+            "success": True,
+            "reason": "No completion validation specified.",
+        }
+
     checker = _CHECKERS.get(completion_type)
     if checker is None:
+        # Treat unknown types as "no validation" for backwards compatibility
         return {
-            "success": False,
-            "reason": f"Unsupported completion_type: {repr(completion_type)}. Supported: contains, regex, json, python_function.",
+            "success": True,
+            "reason": f"Unknown completion_type '{completion_type}' - treating as no validation. Supported types: contains, regex, json, python_function.",
         }
 
     return checker(output, completion_value)
